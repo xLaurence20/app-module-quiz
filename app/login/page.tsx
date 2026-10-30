@@ -14,56 +14,30 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function handleLogin(loginEmail: string, loginPassword: string) {
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
     setBusy(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({ 
-      email: loginEmail, 
-      password: loginPassword 
-    })
-    
-    if (error) { 
-      setBusy(false); 
-      return setError(error.message) 
-    }
-    
-    setBusy(false)
-    router.push('/dashboard')
-    router.refresh()
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    
-    // THE TRICK: If they type "admin" as the email, map it to the hidden email
-    let finalEmail = email
-    let finalPassword = password
-    
-    if (email === 'admin' && password === 'admin123') {
-      finalEmail = 'admin@system.com'
-      finalPassword = 'admin123'
-    }
-
     if (mode === 'signin') {
-      await handleLogin(finalEmail, finalPassword)
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) { setBusy(false); return setError(error.message) }
     } else {
-      setBusy(true)
-      setError(null)
       const { data, error } = await supabase.auth.signUp({ 
-        email: finalEmail, 
-        password: finalPassword,
+        email, 
+        password,
         options: { data: { role: role } }
       })
       if (error) { setBusy(false); return setError(error.message) }
       
       if (data.user) {
-        await supabase.from('profiles').insert({ id: data.user.id, role: role, email: finalEmail })
+        await supabase.from('profiles').insert({ id: data.user.id, role: role, email: email })
       }
-      setBusy(false)
-      router.push('/dashboard')
-      router.refresh()
     }
+    
+    setBusy(false)
+    router.push('/dashboard')
+    router.refresh()
   }
 
   return (
@@ -79,11 +53,11 @@ export default function LoginPage() {
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-[#2d241f] mb-1">Email or Username</label>
+            <label className="block text-sm font-bold text-[#2d241f] mb-1">Email</label>
             <input 
               className="w-full p-3 border border-[#ccc] rounded-lg focus:outline-[#7a3e00]" 
-              type="text" 
-              placeholder="student@test.com or admin"
+              type="email" 
+              placeholder="student@test.com"
               value={email} 
               onChange={e => setEmail(e.target.value)} 
               required 
@@ -134,18 +108,6 @@ export default function LoginPage() {
             {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
           </button>
         </div>
-
-        {/* SUPER ADMIN QUICK LOGIN BUTTON */}
-        {mode === 'signin' && (
-          <div className="mt-8 pt-6 border-t border-[#eee]">
-            <button
-              onClick={() => handleLogin('admin@system.com', 'admin123')}
-              className="w-full bg-red-600 text-white p-3 rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-            >
-              🚨 Login as Super Admin
-            </button>
-          </div>
-        )}
 
       </div>
     </div>
