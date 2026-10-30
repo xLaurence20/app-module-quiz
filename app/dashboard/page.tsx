@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import LogoutButton from '../components/LogoutButton'
 import MockActionButton from '../components/MockActionButton'
 import TeacherCharts from '../components/TeacherCharts'
+import { ActivityForm, FeedbackForm } from '../components/StudentForms'
 
 export const instant = false
 
@@ -29,6 +30,12 @@ export default async function DashboardPage({
   let attempts: any[] = []
   let stats = { totalModules: 0, totalQuizzes: 0, totalAttempts: 0 }
   let myModules: any[] = []
+  
+  // Activity & Feedback Data
+  let activities: any[] = []
+  let submittedActivityIds: string[] = []
+  let allSubmissions: any[] = []
+  let allFeedbacks: any[] = []
 
   if (isTeacher) {
     myModules = modules?.filter(m => m.teacher_id === user.id) || []
@@ -37,7 +44,7 @@ export default async function DashboardPage({
     const { data: quizzes } = await supabase.from('quizzes').select('id').in('module_id', myModuleIds)
     const myQuizIds = quizzes?.map(q => q.id) || []
 
-    // Removed the .limit(10) so the charts have ALL data to calculate accurate statistics
+    // Fetch Quiz Attempts
     const { data: teacherAttempts } = await supabase
       .from('attempts')
       .select('*, quizzes(title), profiles!student_id(email)')
@@ -50,6 +57,21 @@ export default async function DashboardPage({
       totalQuizzes: myQuizIds.length,
       totalAttempts: attempts.length,
     }
+
+    // Fetch Teacher's Activity Submissions
+    const { data: subs } = await supabase
+      .from('activity_submissions')
+      .select('*, profiles!student_id(email), activities(title)')
+      .order('created_at', { ascending: false })
+    allSubmissions = subs || []
+
+    // Fetch Teacher's Feedback
+    const { data: feeds } = await supabase
+      .from('feedbacks')
+      .select('*, profiles!student_id(email)')
+      .order('created_at', { ascending: false })
+    allFeedbacks = feeds || []
+
   } else {
     // STUDENT DATA
     const { data: studentAttempts } = await supabase
@@ -58,6 +80,20 @@ export default async function DashboardPage({
       .eq('student_id', user.id)
       .order('created_at', { ascending: false })
     attempts = studentAttempts || []
+
+    // Fetch Activities for Students
+    const { data: acts } = await supabase
+      .from('activities')
+      .select('*, modules(title)')
+      .order('created_at', { ascending: false })
+    activities = acts || []
+
+    // Fetch Student's submitted activities
+    const { data: mySubmissions } = await supabase
+      .from('activity_submissions')
+      .select('activity_id')
+      .eq('student_id', user.id)
+    submittedActivityIds = mySubmissions?.map(s => s.activity_id) || []
   }
 
   return (
@@ -172,17 +208,18 @@ export default async function DashboardPage({
           {activeTab === 'activities' && (
             <div className="bg-white rounded-[15px] p-6 shadow-sm border border-[#ddd] my-4">
               <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">ACTIVITIES</span>
-              <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Submitted Activities</h2>
-              <p className="text-sm text-gray-500 mb-6">Here you can view student reflections and activity submissions.</p>
+              <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Student Activity Submissions</h2>
               
-              {/* Mocked Activity Submission for UI Design */}
-              <div className="border border-[#ddd] rounded-lg p-4 mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-[#315f8a]">student1@test.com</span>
-                  <span className="text-xs text-gray-400">Today</span>
+              {allSubmissions.length > 0 ? allSubmissions.map((sub: any) => (
+                <div key={sub.id} className="border border-[#ddd] rounded-lg p-4 mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-[#315f8a]">{sub.profiles?.email || 'Unknown Student'}</span>
+                    <span className="text-xs text-gray-400">{new Date(sub.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm font-bold text-[#7a3e00] mb-1">Activity: {sub.activities?.title}</p>
+                  <p className="text-sm bg-[#faf8f6] p-3 rounded italic">"{sub.content}"</p>
                 </div>
-                <p className="text-sm bg-[#faf8f6] p-3 rounded italic">"I want to improve my table napkin folding skills because I want the table to look professional for customers."</p>
-              </div>
+              )) : <p className="text-gray-500 italic">No activity submissions yet.</p>}
             </div>
           )}
 
@@ -206,15 +243,16 @@ export default async function DashboardPage({
               <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Student Feedback</h2>
               
               <div className="space-y-4">
-                {/* Mocked Feedback for UI Design */}
-                <div className="border border-[#ddd] p-4 rounded-lg">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-bold text-sm text-[#2d241f]">Ease of Use:</span>
-                    <span className="text-sm text-[#39733d] font-bold">Very Easy</span>
+                {allFeedbacks.length > 0 ? allFeedbacks.map((f: any) => (
+                  <div key={f.id} className="border border-[#ddd] p-4 rounded-lg">
+                    <div className="flex justify-between mb-2">
+                      <span className="font-bold text-sm text-[#2d241f]">{f.profiles?.email || 'Unknown Student'}</span>
+                      <span className="text-sm text-[#39733d] font-bold">Ease: {f.ease_of_use}</span>
+                    </div>
+                    <p className="text-sm"><strong>Most helpful:</strong> "{f.helpful_text}"</p>
+                    {f.improve_text && <p className="text-sm mt-1"><strong>Improvement:</strong> "{f.improve_text}"</p>}
                   </div>
-                  <p className="text-sm"><strong>Most helpful:</strong> "The AI tutor helps me understand the hard words."</p>
-                  <p className="text-sm mt-1"><strong>Improvement:</strong> "More quizzes please!"</p>
-                </div>
+                )) : <p className="text-gray-500 italic">No feedback yet.</p>}
               </div>
             </div>
           )}
@@ -268,16 +306,30 @@ export default async function DashboardPage({
 
           {/* ACTIVITIES TAB */}
           {activeTab === 'activities' && (
-            <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
-              <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">ACTIVITY</span>
-              <h2 className="text-xl text-[#7a3e00] font-bold mb-2">Reflection</h2>
-              <p className="text-sm mb-4">Write one Food Services skill you want to improve and explain why.</p>
-              <textarea className="w-full p-3 border border-[#ccc] rounded-lg mb-4" rows={4} placeholder="Type your answer..."></textarea>
-              <MockActionButton 
-                label="Save Reflection" 
-                message="Reflection saved!" 
-                className="bg-[#7a3e00] text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90" 
-              />
+            <div className="bg-white rounded-[15px] p-6 shadow-sm my-4 space-y-6">
+              <div>
+                <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">ACTIVITIES</span>
+                <h2 className="text-xl text-[#7a3e00] font-bold mb-2">Posted Activities</h2>
+                <p className="text-sm text-gray-500 mb-4">Answer the activities posted by your teacher.</p>
+              </div>
+              
+              {activities?.map((act: any) => {
+                const isSubmitted = submittedActivityIds.includes(act.id)
+                return (
+                  <div key={act.id} className="border border-[#ddd] p-4 rounded-lg bg-[#faf8f6]">
+                    <h3 className="font-bold text-[#7a3e00]">{act.title}</h3>
+                    <p className="text-sm mb-2">{act.description}</p>
+                    <p className="text-xs text-gray-400 mb-3">Module: {act.modules?.title}</p>
+                    
+                    {isSubmitted ? (
+                      <p className="text-[#39733d] font-bold text-sm bg-[#e8f5e9] p-2 rounded">You have already submitted this activity.</p>
+                    ) : (
+                      <ActivityForm activityId={act.id} />
+                    )}
+                  </div>
+                )
+              })}
+              {!activities?.length && <p className="text-gray-500 italic">No activities posted yet.</p>}
             </div>
           )}
 
@@ -345,18 +397,7 @@ export default async function DashboardPage({
               <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">LEARNER FEEDBACK</span>
               <h2 className="text-xl text-[#7a3e00] font-bold mb-2">Tell Us About Your Experience</h2>
               <p className="text-sm mb-4">Your feedback can help improve the module.</p>
-              <label className="block text-sm font-bold mb-1 mt-4">How easy was the module to use?</label>
-              <select className="w-full p-3 border border-[#ccc] rounded-lg mb-4">
-                <option>Very Easy</option><option>Easy</option><option>Moderately Easy</option><option>Difficult</option>
-              </select>
-              <label className="block text-sm font-bold mb-1">What part helped you most?</label>
-              <textarea className="w-full p-3 border border-[#ccc] rounded-lg mb-4" rows={3} placeholder="Type your answer..."></textarea>
-              
-              <MockActionButton 
-                label="Submit Feedback" 
-                message="Feedback submitted!" 
-                className="bg-[#7a3e00] text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90" 
-              />
+              <FeedbackForm />
             </div>
           )}
         </>

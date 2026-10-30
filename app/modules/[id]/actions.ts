@@ -47,3 +47,15 @@ export async function createQuiz(moduleId: string, title: string, questions: New
   if (error) throw new Error(error.message)
   revalidatePath(`/modules/${moduleId}`)
 }
+
+export async function createActivity(moduleId: string, title: string, description: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  
+  const { error } = await supabase.from('activities').insert({
+    module_id: moduleId, title, description
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/modules/${moduleId}`)
+}

@@ -5,6 +5,7 @@ import AiQuizGenerator from './AiQuizGenerator'
 import Link from 'next/link'
 import { deleteModule } from './actions'
 import AIChat from './AIChat'
+import ActivityBuilder from './ActivityBuilder'
 
 export const instant = false
 
@@ -39,6 +40,7 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
           <div className="flex gap-4 mb-4">
             <Link href={`/modules/${id}/stats`} className="bg-[#315f8a] text-white px-4 py-2 rounded-lg text-sm font-bold">📊 Student Stats</Link>
             <Link href={`/modules/${id}/edit`} className="bg-[#d98b3a] text-white px-4 py-2 rounded-lg text-sm font-bold">Edit Module</Link>
+            <ActivityBuilder moduleId={mod.id} /> right below <QuizBuilder moduleId={mod.id} />
             <form action={deleteModule}>
               <input type="hidden" name="id" value={id} />
               <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Delete</button>
