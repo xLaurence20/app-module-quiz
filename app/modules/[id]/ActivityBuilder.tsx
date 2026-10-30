@@ -6,18 +6,25 @@ export default function ActivityBuilder({ moduleId }: { moduleId: string }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [pending, start] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
   function submit() {
     if (!title.trim() || !description.trim()) return
+    setError(null)
     start(async () => {
-      await createActivity(moduleId, title, description)
-      setTitle(''); setDescription('')
+      try {
+        await createActivity(moduleId, title, description)
+        setTitle('')
+        setDescription('')
+      } catch (err: any) {
+        // This will show the error on the screen instead of crashing the page
+        setError(err.message || 'Failed to add activity.')
+      }
     })
   }
 
   return (
-    <div className="border border-[#ddd] rounded-lg p-4 space-y-3 bg-white mt-6">
-      <h2 className="font-bold text-[#7a3e00]">Create an Activity</h2>
+    <div className="border border-[#ddd] rounded-lg p-4 space-y-3 bg-white">
       <input 
         className="border border-[#ccc] p-2 w-full rounded" 
         placeholder="Activity Title (e.g., Reflection 1)"
@@ -34,6 +41,7 @@ export default function ActivityBuilder({ moduleId }: { moduleId: string }) {
       >
         {pending ? 'Saving...' : 'Add Activity'}
       </button>
+      {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</p>}
     </div>
   )
 }

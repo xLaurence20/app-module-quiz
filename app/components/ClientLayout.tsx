@@ -7,7 +7,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname()
   
   // Check if we are on the login page
-  const isLogin = pathname === '/login' || pathname === '/'
+  const isLogin = pathname === '/login'
 
   return (
     <>

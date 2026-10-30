@@ -36,11 +36,11 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
         <h2 className="text-2xl text-[#7a3e00] font-bold mb-2">{mod.title}</h2>
         <p className="text-sm text-[#6d625c] mb-4">{mod.description}</p>
         
+        {/* TOP BUTTONS */}
         {isOwner && (
           <div className="flex gap-4 mb-4">
             <Link href={`/modules/${id}/stats`} className="bg-[#315f8a] text-white px-4 py-2 rounded-lg text-sm font-bold">📊 Student Stats</Link>
             <Link href={`/modules/${id}/edit`} className="bg-[#d98b3a] text-white px-4 py-2 rounded-lg text-sm font-bold">Edit Module</Link>
-            <ActivityBuilder moduleId={mod.id} /> right below <QuizBuilder moduleId={mod.id} />
             <form action={deleteModule}>
               <input type="hidden" name="id" value={id} />
               <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Delete</button>
@@ -67,10 +67,23 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
 
       {/* TEACHER TOOLS */}
       {isOwner && (
-        <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
-          <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Teacher Tools</h2>
-          <AiQuizGenerator moduleId={mod.id} />
-          <QuizBuilder moduleId={mod.id} />
+        <div className="space-y-8 my-8">
+          <h2 className="text-2xl text-[#7a3e00] font-bold border-b pb-2">Teacher Tools</h2>
+          
+          <div className="bg-white rounded-[15px] p-6 shadow-sm">
+            <h3 className="text-xl font-bold mb-4 text-[#7a3e00]">✨ Auto-Generate Quiz</h3>
+            <AiQuizGenerator moduleId={mod.id} />
+          </div>
+
+          <div className="bg-white rounded-[15px] p-6 shadow-sm">
+            <h3 className="text-xl font-bold mb-4 text-[#7a3e00]">📝 Manual Quiz Builder</h3>
+            <QuizBuilder moduleId={mod.id} />
+          </div>
+
+          <div className="bg-white rounded-[15px] p-6 shadow-sm">
+            <h3 className="text-xl font-bold mb-4 text-[#7a3e00]">🧩 Activity Builder</h3>
+            <ActivityBuilder moduleId={mod.id} />
+          </div>
         </div>
       )}
 
