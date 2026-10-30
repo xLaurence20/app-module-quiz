@@ -106,17 +106,11 @@ export default async function DashboardPage({
             {/* TOP BAR */}
       <div className="flex justify-between items-center bg-white border-b border-[#ddd] p-4 mb-6 rounded-[15px] shadow-sm">
         <div className="font-bold text-[#7a3e00]">
-          {isAdmin ? 'Super Admin Dashboard' : isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
+                    {isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500 hidden md:inline">Signed in as {profile?.email}</span>
-          
-          {/* ADD THIS BUTTON */}
-          {profile?.role === 'super_admin' && (
-            <Link href="/admin" className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700">
-              ⚙️ Super Admin
-            </Link>
-          )}
+        
 
           {isTeacher && (
             <Link href="/modules/new" className="bg-[#7a3e00] text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90">
