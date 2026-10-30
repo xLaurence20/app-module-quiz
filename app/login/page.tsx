@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const supabase = createClient()
-
 export default function LoginPage() {
   const router = useRouter()
+  // MOVE IT HERE: This ensures it only runs in the browser, not during the build
+  const supabase = createClient() 
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
