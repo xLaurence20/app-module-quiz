@@ -20,8 +20,11 @@ export default async function DashboardPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role, email').eq('id', user.id).single()
-  const isTeacher = profile?.role === 'teacher'
+    const { data: profile } = await supabase.from('profiles').select('role, email').eq('id', user.id).single()
+  
+  // Treat super_admin as a teacher so they get the full dashboard
+  const isAdmin = profile?.role === 'super_admin'
+  const isTeacher = profile?.role === 'teacher' || isAdmin
 
   // Fetch all modules
   const { data: modules } = await supabase
@@ -103,7 +106,7 @@ export default async function DashboardPage({
             {/* TOP BAR */}
       <div className="flex justify-between items-center bg-white border-b border-[#ddd] p-4 mb-6 rounded-[15px] shadow-sm">
         <div className="font-bold text-[#7a3e00]">
-          {isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
+          {isAdmin ? 'Super Admin Dashboard' : isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500 hidden md:inline">Signed in as {profile?.email}</span>
