@@ -1,6 +1,7 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import Navbar from './Navbar'
+import { Suspense } from 'react' // <-- Import Suspense
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -20,7 +21,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <p className="font-bold">Food Services • Grade 9</p>
             <p className="text-sm opacity-90">Revised K–10 Curriculum | Thesis Prototype</p>
           </header>
-          <Navbar />
+          
+          {/* WRAP NAVBAR IN SUSPENSE HERE */}
+          <Suspense fallback={<div className="h-12 bg-white border-b border-[#ddd] w-full"></div>}>
+            <Navbar />
+          </Suspense>
         </>
       )}
 
