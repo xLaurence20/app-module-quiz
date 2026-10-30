@@ -13,8 +13,6 @@ export default function LoginPage() {
   const [role, setRole] = useState<'student' | 'teacher'>('student')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  
-  // NEW: State to handle the success confirmation screen
   const [success, setSuccess] = useState(false)
 
   async function submit(e: React.FormEvent) {
@@ -22,41 +20,50 @@ export default function LoginPage() {
     setBusy(true)
     setError(null)
 
-    if (mode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setBusy(false); return setError(error.message) }
-      
-      // Directly redirect for login
-      router.push('/dashboard')
-      router.refresh()
-      
-    } else {
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: { data: { role: role } }
-      })
-      if (error) { setBusy(false); return setError(error.message) }
-      
-      if (data.user) {
-        await supabase.from('profiles').insert({ id: data.user.id, role: role, email: email })
+    try {
+      if (mode === 'signin') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        
+        if (error) { 
+          setBusy(false); 
+          return setError(error.message) 
+        }
+        
+        // FIX: Use window.location.href for a hard reload
+        window.location.href = '/dashboard'
+        
+      } else {
+        const { data, error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: { data: { role: role } }
+        })
+        
+        if (error) { 
+          setBusy(false); 
+          return setError(error.message) 
+        }
+        
+        if (data.user) {
+          await supabase.from('profiles').insert({ id: data.user.id, role: role, email: email })
+        }
+        
+        setBusy(false)
+        setSuccess(true)
+        
+        // FIX: Use window.location.href for a hard reload after timeout
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 2500)
       }
-      
+    } catch (err) {
       setBusy(false)
-      
-      // NEW: Show success screen instead of redirecting immediately
-      setSuccess(true)
-      
-      // NEW: Auto-redirect after 2.5 seconds
-      setTimeout(() => {
-        router.push('/dashboard')
-        router.refresh()
-      }, 2500)
+      setError('An unexpected error occurred. Please try again.')
     }
   }
 
   // ==========================================
-  // SUCCESS SCREEN (Shows after registration)
+  // SUCCESS SCREEN
   // ==========================================
   if (success) {
     return (
