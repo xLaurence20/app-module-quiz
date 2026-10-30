@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [role, setRole] = useState<'student' | 'teacher'>('student')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  
+  // NEW: State to handle the success confirmation screen
+  const [success, setSuccess] = useState(false)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,6 +25,11 @@ export default function LoginPage() {
     if (mode === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setBusy(false); return setError(error.message) }
+      
+      // Directly redirect for login
+      router.push('/dashboard')
+      router.refresh()
+      
     } else {
       const { data, error } = await supabase.auth.signUp({ 
         email, 
@@ -33,13 +41,45 @@ export default function LoginPage() {
       if (data.user) {
         await supabase.from('profiles').insert({ id: data.user.id, role: role, email: email })
       }
+      
+      setBusy(false)
+      
+      // NEW: Show success screen instead of redirecting immediately
+      setSuccess(true)
+      
+      // NEW: Auto-redirect after 2.5 seconds
+      setTimeout(() => {
+        router.push('/dashboard')
+        router.refresh()
+      }, 2500)
     }
-    
-    setBusy(false)
-    router.push('/dashboard')
-    router.refresh()
   }
 
+  // ==========================================
+  // SUCCESS SCREEN (Shows after registration)
+  // ==========================================
+  if (success) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <div className="bg-white rounded-[15px] shadow-sm border border-[#ddd] p-8 w-full max-w-md text-center">
+          <div className="w-20 h-20 bg-[#e8f5e9] rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">✅</span>
+          </div>
+          <h2 className="text-2xl text-[#39733d] font-bold mb-2">Account Created!</h2>
+          <p className="text-[#6d625c] mb-6">
+            Welcome to the Food Services Module. We are redirecting you to your {role} dashboard...
+          </p>
+          <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-[#39733d] h-full w-full animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // LOGIN / SIGNUP FORM
+  // ==========================================
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="bg-white rounded-[15px] shadow-sm border border-[#ddd] p-8 w-full max-w-md">
@@ -94,7 +134,7 @@ export default function LoginPage() {
           
           <button 
             disabled={busy} 
-            className="w-full bg-[#7a3e00] text-white p-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
+            className="w-full bg-[#7a3e00] text-white p-3 rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {busy ? 'Processing...' : mode === 'signin' ? 'Sign in' : 'Sign up'}
           </button>
@@ -103,7 +143,10 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <button 
             className="text-sm text-[#315f8a] hover:underline"
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            onClick={() => {
+              setMode(mode === 'signin' ? 'signup' : 'signin')
+              setError(null)
+            }}
           >
             {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
           </button>
