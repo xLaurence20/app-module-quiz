@@ -14,67 +14,75 @@ export async function createModule(formData: FormData) {
 
     const title = String(formData.get('title') ?? '').trim()
     const description = String(formData.get('description') ?? '').trim()
-    const file = formData.get('file') as File | null
+    
+    // FIX: Get the filePath and fileName passed from the client component
+    const filePath = String(formData.get('filePath') ?? '').trim()
+    const fileName = String(formData.get('fileName') ?? '').trim()
 
-    if (!file || file.size === 0) throw new Error('No file uploaded')
+    if (!filePath) throw new Error('No file uploaded')
 
-    let file_path: string | null = null
     let content = ''
 
-    // 1. Upload file to Supabase Storage
-    const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
-    const { error: uploadError } = await supabase.storage.from('modules').upload(path, file)
-    if (uploadError) throw new Error(uploadError.message)
-    file_path = path
+    // 1. Download file from Supabase Storage to extract text
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('modules')
+      .download(filePath)
 
-    // 2. Extract text
-    const arrayBuffer = await file.arrayBuffer()
+    if (downloadError) throw new Error('Failed to download file for processing')
+
+    const arrayBuffer = await fileData.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    if (file.name.endsWith('.pdf')) {
-      const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
-      const { text } = await extractText(pdf, { mergePages: true })
-      content = text
-    } else if (file.name.endsWith('.docx')) {
-      const result = await mammoth.extractRawText({ buffer })
-      content = result.value
-    } else if (file.name.endsWith('.pptx')) {
-      // Custom PPTX parser (Serverless-safe)
-      const zip = await JSZip.loadAsync(buffer)
-      let pptxText = ''
-      
-      const slideFiles = Object.keys(zip.files).filter(name => 
-        name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
-      )
-      
-      for (const slide of slideFiles) {
-        const xmlContent = await zip.file(slide)?.async('string')
-        if (xmlContent) {
-          const result = await parseStringPromise(xmlContent)
-          const texts: string[] = []
-          
-          const findText = (obj: any) => {
-            if (obj['a:t']) texts.push(...obj['a:t'])
-            for (const key in obj) {
-              if (typeof obj[key] === 'object') findText(obj[key])
+    // 2. Extract text based on file extension
+    try {
+      if (fileName.endsWith('.pdf')) {
+        const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
+        const { text } = await extractText(pdf, { mergePages: true })
+        content = text
+      } else if (fileName.endsWith('.docx')) {
+        const result = await mammoth.extractRawText({ buffer })
+        content = result.value
+      } else if (fileName.endsWith('.pptx')) {
+        // Custom PPTX parser (Serverless-safe)
+        const zip = await JSZip.loadAsync(buffer)
+        let pptxText = ''
+        
+        const slideFiles = Object.keys(zip.files).filter(name => 
+          name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
+        )
+        
+        for (const slide of slideFiles) {
+          const xmlContent = await zip.file(slide)?.async('string')
+          if (xmlContent) {
+            const result = await parseStringPromise(xmlContent)
+            const texts: string[] = []
+            
+            const findText = (obj: any) => {
+              if (obj['a:t']) texts.push(...obj['a:t'])
+              for (const key in obj) {
+                if (typeof obj[key] === 'object') findText(obj[key])
+              }
+            }
+            findText(result)
+            
+            if (texts.length > 0) {
+              pptxText += texts.join(' ') + '\n'
             }
           }
-          findText(result)
-          
-          if (texts.length > 0) {
-            pptxText += texts.join(' ') + '\n'
-          }
         }
+        content = pptxText
+      } else {
+        content = "Preview not available for this file type."
       }
-      content = pptxText
-    } else {
-      content = "Preview not available for this file type."
+    } catch (err) {
+      console.error("Extraction Error:", err)
+      content = "Failed to extract text from this document."
     }
 
     // 3. Save module to database
     const { data: newModule, error: dbError } = await supabase
       .from('modules')
-      .insert({ teacher_id: user.id, title, description, file_path, content })
+      .insert({ teacher_id: user.id, title, description, file_path: filePath, content })
       .select('id')
       .single()
       
@@ -85,7 +93,6 @@ export async function createModule(formData: FormData) {
     
   } catch (err: any) {
     console.error("Server Action Error:", err)
-    // Return the error message to the client instead of crashing
     return { error: err.message || 'Failed to process module.' }
   }
 }
