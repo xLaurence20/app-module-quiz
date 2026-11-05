@@ -28,7 +28,7 @@ export async function createModule(formData: FormData) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    if (file.name.endsWith('.pdf')) {
+        if (file.name.endsWith('.pdf')) {
       const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
       const { text } = await extractText(pdf, { mergePages: true })
       content = text
@@ -36,8 +36,13 @@ export async function createModule(formData: FormData) {
       const result = await mammoth.extractRawText({ buffer })
       content = result.value
         } else if (file.name.endsWith('.pptx')) {
-      // Use the stable v4 API
-      content = await officeParser.parseOfficeAsync(buffer)
+      try {
+        // Just pass the buffer. The library handles the rest.
+        content = await officeParser.parseOfficeAsync(buffer)
+      } catch (error) {
+        console.error("PPTX Parsing Error:", error)
+        throw new Error("Failed to extract text from PowerPoint. The file might be too large or corrupted.")
+      }
     } else {
       content = "Preview not available for this file type."
     }
