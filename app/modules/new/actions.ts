@@ -7,6 +7,8 @@ import JSZip from 'jszip'
 import { parseStringPromise } from 'xml2js'
 
 export async function createModule(formData: FormData) {
+  let redirectUrl = ''
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -14,8 +16,6 @@ export async function createModule(formData: FormData) {
 
     const title = String(formData.get('title') ?? '').trim()
     const description = String(formData.get('description') ?? '').trim()
-    
-    // FIX: Get the filePath and fileName passed from the client component
     const filePath = String(formData.get('filePath') ?? '').trim()
     const fileName = String(formData.get('fileName') ?? '').trim()
 
@@ -89,10 +89,16 @@ export async function createModule(formData: FormData) {
     if (dbError) throw new Error(dbError.message)
     if (!newModule) throw new Error('Failed to create module record')
     
-    redirect(`/modules/${newModule.id}`)
+    // Set the URL, but don't redirect yet!
+    redirectUrl = `/modules/${newModule.id}`
     
   } catch (err: any) {
     console.error("Server Action Error:", err)
     return { error: err.message || 'Failed to process module.' }
+  }
+
+  // 4. Redirect OUTSIDE the try/catch so Next.js can handle it properly
+  if (redirectUrl) {
+    redirect(redirectUrl)
   }
 }
