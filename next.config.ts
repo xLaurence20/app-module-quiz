@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  serverExternalPackages: ['officeparser', 'unpdf', 'mammoth'], 
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

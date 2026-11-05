@@ -54,7 +54,7 @@ export default async function NewModulePage() {
             <input 
               name="file" 
               type="file" 
-              accept=".pdf,.docx" 
+              accept=".pdf,.docx,.pptx,.txt" 
               required 
               className="border border-[#ccc] p-3 w-full rounded-lg bg-white" 
             />
