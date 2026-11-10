@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import LogoutButton from '../components/LogoutButton'
-import MockActionButton from '../components/MockActionButton'
 import TeacherCharts from '../components/TeacherCharts'
 import { ActivityForm, FeedbackForm } from '../components/StudentForms'
 
@@ -20,7 +19,7 @@ export default async function DashboardPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-    const { data: profile } = await supabase.from('profiles').select('role, email').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('role, email').eq('id', user.id).single()
   
   // Treat super_admin as a teacher so they get the full dashboard
   const isAdmin = profile?.role === 'super_admin'
@@ -103,15 +102,13 @@ export default async function DashboardPage({
     <main className="max-w-[1100px] mx-auto p-4 md:p-6 min-h-[70vh]">
       
       {/* TOP BAR */}
-            {/* TOP BAR */}
       <div className="flex justify-between items-center bg-white border-b border-[#ddd] p-4 mb-6 rounded-[15px] shadow-sm">
         <div className="font-bold text-[#7a3e00]">
-                    {isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
+          {isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500 hidden md:inline">Signed in as {profile?.email}</span>
-        
-
+          
           {isTeacher && (
             <Link href="/modules/new" className="bg-[#7a3e00] text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90">
               + New Module
@@ -276,14 +273,14 @@ export default async function DashboardPage({
               <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
                 <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">WELCOME</span>
                 <h2 className="text-2xl text-[#7a3e00] font-bold mb-2">Welcome, Grade 9 Learner!</h2>
-                <p className="mb-4">This prototype provides organized Food Services lessons, guided activities, AI-supported explanations, quizzes, and reflection tasks.</p>
+                <p className="mb-4">This prototype provides organized Food Services lessons, guided activities, video lectures, quizzes, and reflection tasks.</p>
                 <div className="bg-[#fff7e8] border-l-4 border-[#d98b3a] p-4 rounded text-sm mb-4">
-                  <strong>Important:</strong> AI is a learning support. It does not replace your teacher. Always verify information with your teacher and use the validated module content as your main learning guide.
+                  <strong>Reminder:</strong> Please review the module materials carefully. If you have questions, consult your teacher.
                 </div>
               </div>
               <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
                 <h2 className="text-xl text-[#7a3e00] font-bold mb-2">Learning Flow</h2>
-                <p className="font-bold">Learn → Practice → Ask → Apply → Assess → Reflect</p>
+                <p className="font-bold">Learn → Practice → Apply → Assess → Reflect</p>
               </div>
             </>
           )}
@@ -292,7 +289,7 @@ export default async function DashboardPage({
           {activeTab === 'lessons' && (
             <>
               <h2 className="text-xl text-[#7a3e00] font-bold mt-4 mb-4">Food Services Lessons</h2>
-              <p className="text-sm text-[#6d625c] mb-4">Open a module to read the lesson, ask the AI tutor, and take quizzes.</p>
+              <p className="text-sm text-[#6d625c] mb-4">Open a module to read the lesson material, watch the video, and take quizzes.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {modules?.map(m => (
                   <div key={m.id} className="bg-[#f6eadf] p-6 rounded-xl flex flex-col justify-between">
@@ -336,21 +333,6 @@ export default async function DashboardPage({
                 )
               })}
               {!activities?.length && <p className="text-gray-500 italic">No activities posted yet.</p>}
-            </div>
-          )}
-
-          {/* AI SUPPORT TAB */}
-          {activeTab === 'ai' && (
-            <div className="bg-[#f0f6fc] border-l-4 border-[#315f8a] p-6 rounded-[15px] my-4 shadow-sm">
-              <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">AI LEARNING SUPPORT</span>
-              <h2 className="text-xl text-[#315f8a] font-bold mb-2">Ask for an Explanation</h2>
-              <p className="text-sm mb-4">To ask the AI questions about a specific lesson, open a module and use the AI Module Tutor!</p>
-              <div className="bg-white p-4 rounded-lg text-sm border border-[#ddd] text-gray-600">
-                (The AI Chat is available inside each module to ensure answers are restricted to that specific lesson's content.)
-              </div>
-              <Link href="/dashboard?tab=lessons" className="inline-block mt-4 bg-[#315f8a] text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90">
-                Go to Lessons
-              </Link>
             </div>
           )}
 

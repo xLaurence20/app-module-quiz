@@ -49,6 +49,20 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
+            {/* VIDEO PLAYER */}
+      {mod.video_path && (
+        <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
+          <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Video Lesson</h2>
+          <video 
+            controls 
+            className="w-full rounded-lg"
+            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/modules/${mod.video_path}`}
+          >
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      )}
+
       {/* MODULE CONTENT (Lesson) */}
       <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
         <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Module Content</h2>
@@ -62,7 +76,6 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
         <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-2">AI LEARNING SUPPORT</span>
         <h2 className="text-xl text-[#315f8a] font-bold mb-2">Ask for an Explanation</h2>
         <p className="text-sm mb-4">Type a Food Services concept or procedure you find difficult. This prototype provides a guided response.</p>
-        <AIChat moduleId={mod.id} />
       </div>
 
       {/* TEACHER TOOLS */}
@@ -72,7 +85,7 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
           
           <div className="bg-white rounded-[15px] p-6 shadow-sm">
             <h3 className="text-xl font-bold mb-4 text-[#7a3e00]">✨ Auto-Generate Quiz</h3>
-            <AiQuizGenerator moduleId={mod.id} />
+            
           </div>
 
           <div className="bg-white rounded-[15px] p-6 shadow-sm">

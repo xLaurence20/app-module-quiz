@@ -8,7 +8,6 @@ import { parseStringPromise } from 'xml2js'
 
 export async function createModule(formData: FormData) {
   let redirectUrl = ''
-
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -18,87 +17,62 @@ export async function createModule(formData: FormData) {
     const description = String(formData.get('description') ?? '').trim()
     const filePath = String(formData.get('filePath') ?? '').trim()
     const fileName = String(formData.get('fileName') ?? '').trim()
+    const videoPath = String(formData.get('videoPath') ?? '').trim() || null
 
-    if (!filePath) throw new Error('No file uploaded')
+    if (!filePath) throw new Error('No document uploaded')
 
     let content = ''
-
-    // 1. Download file from Supabase Storage to extract text
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('modules')
-      .download(filePath)
-
-    if (downloadError) throw new Error('Failed to download file for processing')
-
-    const arrayBuffer = await fileData.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    // 2. Extract text based on file extension
-    try {
-      if (fileName.endsWith('.pdf')) {
-        const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
-        const { text } = await extractText(pdf, { mergePages: true })
-        content = text
-      } else if (fileName.endsWith('.docx')) {
-        const result = await mammoth.extractRawText({ buffer })
-        content = result.value
-      } else if (fileName.endsWith('.pptx')) {
-        // Custom PPTX parser (Serverless-safe)
-        const zip = await JSZip.loadAsync(buffer)
-        let pptxText = ''
-        
-        const slideFiles = Object.keys(zip.files).filter(name => 
-          name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
-        )
-        
-        for (const slide of slideFiles) {
-          const xmlContent = await zip.file(slide)?.async('string')
-          if (xmlContent) {
-            const result = await parseStringPromise(xmlContent)
-            const texts: string[] = []
-            
-            const findText = (obj: any) => {
-              if (obj['a:t']) texts.push(...obj['a:t'])
-              for (const key in obj) {
-                if (typeof obj[key] === 'object') findText(obj[key])
-              }
-            }
-            findText(result)
-            
-            if (texts.length > 0) {
-              pptxText += texts.join(' ') + '\n'
+    const { data: fileData } = await supabase.storage.from('modules').download(filePath)
+    if (fileData) {
+      const arrayBuffer = await fileData.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      try {
+        if (fileName.endsWith('.pdf')) {
+          const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
+          const { text } = await extractText(pdf, { mergePages: true })
+          content = text
+        } else if (fileName.endsWith('.docx')) {
+          const result = await mammoth.extractRawText({ buffer })
+          content = result.value
+        } else if (fileName.endsWith('.pptx')) {
+          const zip = await JSZip.loadAsync(buffer)
+          let pptxText = ''
+          const slideFiles = Object.keys(zip.files).filter(n => n.startsWith('ppt/slides/slide') && n.endsWith('.xml'))
+          for (const slide of slideFiles) {
+            const xml = await zip.file(slide)?.async('string')
+            if (xml) {
+              const result = await parseStringPromise(xml)
+              const texts: string[] = []
+              const findText = (o: any) => { if (o['a:t']) texts.push(...o['a:t']); for (const k in o) { if (typeof o[k] === 'object') findText(o[k]) } }
+              findText(result)
+              if (texts.length) pptxText += texts.join(' ') + '\n'
             }
           }
+          content = pptxText
         }
-        content = pptxText
-      } else {
-        content = "Preview not available for this file type."
-      }
-    } catch (err) {
-      console.error("Extraction Error:", err)
-      content = "Failed to extract text from this document."
+      } catch (e) { content = "Could not extract text preview." }
     }
 
-    // 3. Save module to database
+    // Save with video_path!
     const { data: newModule, error: dbError } = await supabase
       .from('modules')
-      .insert({ teacher_id: user.id, title, description, file_path: filePath, content })
+      .insert({ 
+        teacher_id: user.id, 
+        title, 
+        description, 
+        file_path: filePath, 
+        content,
+        video_path: videoPath 
+      })
       .select('id')
       .single()
       
     if (dbError) throw new Error(dbError.message)
-    if (!newModule) throw new Error('Failed to create module record')
+    if (!newModule) throw new Error('Failed to create module')
     
-    // Set the URL, but don't redirect yet!
     redirectUrl = `/modules/${newModule.id}`
-    
   } catch (err: any) {
-    console.error("Server Action Error:", err)
     return { error: err.message || 'Failed to process module.' }
   }
-
-  // 4. Redirect OUTSIDE the try/catch so Next.js can handle it properly
-  if (redirectUrl) {
-    redirect(redirectUrl)
-  }
+  if (redirectUrl) redirect(redirectUrl)
 }

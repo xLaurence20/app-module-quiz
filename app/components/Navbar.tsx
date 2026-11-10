@@ -11,7 +11,6 @@ export default function Navbar() {
     { name: 'Home', href: '/dashboard?tab=home', id: 'home' },
     { name: 'Lessons', href: '/dashboard?tab=lessons', id: 'lessons' },
     { name: 'Activities', href: '/dashboard?tab=activities', id: 'activities' },
-    { name: 'AI Support', href: '/dashboard?tab=ai', id: 'ai' },
     { name: 'Quiz', href: '/dashboard?tab=quiz', id: 'quiz' },
     { name: 'Assessment', href: '/dashboard?tab=assessment', id: 'assessment' },
     { name: 'Feedback', href: '/dashboard?tab=feedback', id: 'feedback' },
