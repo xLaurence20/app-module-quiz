@@ -10,8 +10,6 @@ export async function createModule(formData: FormData) {
   let redirectUrl = ''
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
 
     const title = String(formData.get('title') ?? '').trim()
     const description = String(formData.get('description') ?? '').trim()
@@ -53,11 +51,10 @@ export async function createModule(formData: FormData) {
       } catch (e) { content = "Could not extract text preview." }
     }
 
-    // Save with video_path!
+    // Save to database (teacher_id is now optional/null)
     const { data: newModule, error: dbError } = await supabase
       .from('modules')
       .insert({ 
-        teacher_id: user.id, 
         title, 
         description, 
         file_path: filePath, 

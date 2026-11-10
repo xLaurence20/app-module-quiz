@@ -14,25 +14,22 @@ export default function NewModulePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!docFile) return setError('Please select a Document (PDF, DOCX, or PPTX)')
     setLoading(true)
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not logged in')
-
-      // 1. Upload Document
-      const docPath = `${user.id}/${crypto.randomUUID()}-${docFile.name}`
+      // 1. Upload Document directly to Supabase (using a generic folder)
+      const docPath = `uploads/${crypto.randomUUID()}-${docFile.name}`
       const { error: docError } = await supabase.storage.from('modules').upload(docPath, docFile)
       if (docError) throw new Error(docError.message)
 
       // 2. Upload Video (If provided)
       let videoPath = ''
       if (videoFile) {
-        videoPath = `${user.id}/${crypto.randomUUID()}-${videoFile.name}`
+        videoPath = `uploads/${crypto.randomUUID()}-${videoFile.name}`
         const { error: vidError } = await supabase.storage.from('modules').upload(videoPath, videoFile)
         if (vidError) throw new Error(vidError.message)
       }
