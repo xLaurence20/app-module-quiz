@@ -11,7 +11,6 @@ export default function NewModulePage() {
   const [description, setDescription] = useState('')
   const [docFile, setDocFile] = useState<File | null>(null)
   
-  // NEW: Toggle for video source
   const [videoSource, setVideoSource] = useState<'file' | 'url'>('file')
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoUrl, setVideoUrl] = useState('')
@@ -21,17 +20,25 @@ export default function NewModulePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!docFile) return setError('Please select a Document (PDF, DOCX, or PPTX)')
+    
+    // NEW VALIDATION: Must have at least a document, a video file, or a video URL
+    if (!docFile && !videoFile && !videoUrl) {
+      return setError('Please provide at least a Document, a Video File, or a Video URL.')
+    }
+
     setLoading(true)
     setError(null)
 
     try {
-      // 1. Upload Document directly to Supabase
-      const docPath = `uploads/${crypto.randomUUID()}-${docFile.name}`
-      const { error: docError } = await supabase.storage.from('modules').upload(docPath, docFile)
-      if (docError) throw new Error(docError.message)
+      let docPath = ''
+      // 1. Upload Document (only if provided)
+      if (docFile) {
+        docPath = `uploads/${crypto.randomUUID()}-${docFile.name}`
+        const { error: docError } = await supabase.storage.from('modules').upload(docPath, docFile)
+        if (docError) throw new Error(docError.message)
+      }
 
-      // 2. Upload Video File (If 'file' is selected)
+      // 2. Upload Video File (only if 'file' is selected and a file is chosen)
       let videoPath = ''
       if (videoSource === 'file' && videoFile) {
         videoPath = `uploads/${crypto.randomUUID()}-${videoFile.name}`
@@ -44,10 +51,9 @@ export default function NewModulePage() {
       formData.append('title', title)
       formData.append('description', description)
       formData.append('filePath', docPath)
-      formData.append('fileName', docFile.name)
+      formData.append('fileName', docFile ? docFile.name : '')
       formData.append('videoPath', videoPath)
       
-      // If they chose URL, send the URL
       if (videoSource === 'url' && videoUrl) {
         formData.append('videoUrl', videoUrl)
       }
@@ -85,8 +91,9 @@ export default function NewModulePage() {
           </div>
           
           <div>
-            <label className="block text-sm font-bold text-[#2d241f] mb-1">Document File (PDF, DOCX, PPTX)</label>
-            <input type="file" accept=".pdf,.docx,.pptx" onChange={e => setDocFile(e.target.files?.[0] || null)} required className="border border-[#ccc] p-3 w-full rounded-lg bg-white" />
+            {/* REMOVED 'required' HERE */}
+            <label className="block text-sm font-bold text-[#2d241f] mb-1">Document File (Optional - PDF, DOCX, PPTX)</label>
+            <input type="file" accept=".pdf,.docx,.pptx" onChange={e => setDocFile(e.target.files?.[0] || null)} className="border border-[#ccc] p-3 w-full rounded-lg bg-white" />
           </div>
 
           {/* VIDEO SECTION */}

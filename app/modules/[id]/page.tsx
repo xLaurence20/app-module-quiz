@@ -65,13 +65,15 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      {/* DOCUMENT CONTENT */}
-      <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
-        <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Document Content</h2>
-        <div className="whitespace-pre-wrap text-[#2d241f] leading-relaxed">
-          {mod.content || "No text extracted."}
+            {/* DOCUMENT CONTENT (Only show if content exists) */}
+      {mod.content && (
+        <div className="bg-white rounded-[15px] p-6 shadow-sm my-4">
+          <h2 className="text-xl text-[#7a3e00] font-bold mb-4">Document Content</h2>
+          <div className="whitespace-pre-wrap text-[#2d241f] leading-relaxed">
+            {mod.content}
+          </div>
         </div>
-      </div>
+      )}
 
     </main>
   )
