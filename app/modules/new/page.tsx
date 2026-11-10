@@ -10,25 +10,30 @@ export default function NewModulePage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [docFile, setDocFile] = useState<File | null>(null)
+  
+  // NEW: Toggle for video source
+  const [videoSource, setVideoSource] = useState<'file' | 'url'>('file')
   const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoUrl, setVideoUrl] = useState('')
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-    async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!docFile) return setError('Please select a Document (PDF, DOCX, or PPTX)')
     setLoading(true)
     setError(null)
 
     try {
-      // 1. Upload Document directly to Supabase (using a generic folder)
+      // 1. Upload Document directly to Supabase
       const docPath = `uploads/${crypto.randomUUID()}-${docFile.name}`
       const { error: docError } = await supabase.storage.from('modules').upload(docPath, docFile)
       if (docError) throw new Error(docError.message)
 
-      // 2. Upload Video (If provided)
+      // 2. Upload Video File (If 'file' is selected)
       let videoPath = ''
-      if (videoFile) {
+      if (videoSource === 'file' && videoFile) {
         videoPath = `uploads/${crypto.randomUUID()}-${videoFile.name}`
         const { error: vidError } = await supabase.storage.from('modules').upload(videoPath, videoFile)
         if (vidError) throw new Error(vidError.message)
@@ -41,6 +46,11 @@ export default function NewModulePage() {
       formData.append('filePath', docPath)
       formData.append('fileName', docFile.name)
       formData.append('videoPath', videoPath)
+      
+      // If they chose URL, send the URL
+      if (videoSource === 'url' && videoUrl) {
+        formData.append('videoUrl', videoUrl)
+      }
 
       const result = await createModule(formData)
       if (result?.error) {
@@ -60,18 +70,18 @@ export default function NewModulePage() {
       </div>
 
       <div className="bg-white rounded-[15px] p-6 shadow-sm border border-[#ddd]">
-        <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">TEACHER TOOL</span>
+        <span className="inline-block bg-[#efd0ae] text-[#67330d] rounded-full px-3 py-1 text-xs font-bold mb-3">UPLOAD TOOL</span>
         <h1 className="text-2xl text-[#7a3e00] font-bold mb-6">Upload New Module</h1>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-[#2d241f] mb-1">Module Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} required className="border border-[#ccc] p-3 w-full rounded-lg focus:outline-[#7a3e00]" placeholder="e.g. Introduction to Food Safety" />
+            <input value={title} onChange={e => setTitle(e.target.value)} required className="border border-[#ccc] p-3 w-full rounded-lg focus:outline-[#7a3e00]" />
           </div>
           
           <div>
             <label className="block text-sm font-bold text-[#2d241f] mb-1">Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="border border-[#ccc] p-3 w-full rounded-lg focus:outline-[#7a3e00]" placeholder="Brief description of this module..." />
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="border border-[#ccc] p-3 w-full rounded-lg focus:outline-[#7a3e00]" />
           </div>
           
           <div>
@@ -79,10 +89,32 @@ export default function NewModulePage() {
             <input type="file" accept=".pdf,.docx,.pptx" onChange={e => setDocFile(e.target.files?.[0] || null)} required className="border border-[#ccc] p-3 w-full rounded-lg bg-white" />
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-[#2d241f] mb-1">Video File (Optional - MP4)</label>
-            <input type="file" accept="video/mp4,video/webm" onChange={e => setVideoFile(e.target.files?.[0] || null)} className="border border-[#ccc] p-3 w-full rounded-lg bg-white" />
-            <p className="text-xs text-gray-500 mt-1">Upload a lecture video for this module.</p>
+          {/* VIDEO SECTION */}
+          <div className="border border-[#ddd] p-4 rounded-lg bg-[#faf8f6]">
+            <label className="block text-sm font-bold text-[#2d241f] mb-2">Video Lesson (Optional)</label>
+            
+            <div className="flex gap-4 mb-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" checked={videoSource === 'file'} onChange={() => setVideoSource('file')} />
+                Upload Video File
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" checked={videoSource === 'url'} onChange={() => setVideoSource('url')} />
+                Paste Video Link
+              </label>
+            </div>
+
+            {videoSource === 'file' ? (
+              <div>
+                <input type="file" accept="video/mp4,video/webm" onChange={e => setVideoFile(e.target.files?.[0] || null)} className="border border-[#ccc] p-2 w-full rounded-lg bg-white" />
+                <p className="text-xs text-gray-500 mt-1">Max size: 50MB (Default Supabase limit).</p>
+              </div>
+            ) : (
+              <div>
+                <input type="url" placeholder="https://www.youtube.com/watch?v=..." value={videoUrl} onChange={e => setVideoUrl(e.target.value)} className="border border-[#ccc] p-2 w-full rounded-lg bg-white" />
+                <p className="text-xs text-gray-500 mt-1">Paste a YouTube, Vimeo, or Google Drive link.</p>
+              </div>
+            )}
           </div>
           
           {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</p>}

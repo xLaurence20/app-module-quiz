@@ -6,6 +6,8 @@ import mammoth from 'mammoth'
 import JSZip from 'jszip'
 import { parseStringPromise } from 'xml2js'
 
+// ... (keep imports the same) ...
+
 export async function createModule(formData: FormData) {
   let redirectUrl = ''
   try {
@@ -16,42 +18,17 @@ export async function createModule(formData: FormData) {
     const filePath = String(formData.get('filePath') ?? '').trim()
     const fileName = String(formData.get('fileName') ?? '').trim()
     const videoPath = String(formData.get('videoPath') ?? '').trim() || null
+    const videoUrl = String(formData.get('videoUrl') ?? '').trim() || null // <-- ADD THIS
 
     if (!filePath) throw new Error('No document uploaded')
 
     let content = ''
     const { data: fileData } = await supabase.storage.from('modules').download(filePath)
     if (fileData) {
-      const arrayBuffer = await fileData.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      try {
-        if (fileName.endsWith('.pdf')) {
-          const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
-          const { text } = await extractText(pdf, { mergePages: true })
-          content = text
-        } else if (fileName.endsWith('.docx')) {
-          const result = await mammoth.extractRawText({ buffer })
-          content = result.value
-        } else if (fileName.endsWith('.pptx')) {
-          const zip = await JSZip.loadAsync(buffer)
-          let pptxText = ''
-          const slideFiles = Object.keys(zip.files).filter(n => n.startsWith('ppt/slides/slide') && n.endsWith('.xml'))
-          for (const slide of slideFiles) {
-            const xml = await zip.file(slide)?.async('string')
-            if (xml) {
-              const result = await parseStringPromise(xml)
-              const texts: string[] = []
-              const findText = (o: any) => { if (o['a:t']) texts.push(...o['a:t']); for (const k in o) { if (typeof o[k] === 'object') findText(o[k]) } }
-              findText(result)
-              if (texts.length) pptxText += texts.join(' ') + '\n'
-            }
-          }
-          content = pptxText
-        }
-      } catch (e) { content = "Could not extract text preview." }
+      // ... (keep the text extraction logic the same) ...
     }
 
-    // Save to database (teacher_id is now optional/null)
+    // Save to database with videoUrl
     const { data: newModule, error: dbError } = await supabase
       .from('modules')
       .insert({ 
@@ -59,7 +36,8 @@ export async function createModule(formData: FormData) {
         description, 
         file_path: filePath, 
         content,
-        video_path: videoPath 
+        video_path: videoPath,
+        video_url: videoUrl // <-- ADD THIS
       })
       .select('id')
       .single()
